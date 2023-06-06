@@ -69,8 +69,8 @@ class Generation(object):
         fake_post2 = "Incredible news, Ukrainian artillery struck the capital building in Kyiv."
         prompt = ""
         ref_article = ""
-        self.load_seq2seq_model()
-        # self.correct_post(ref_article, fake_post2)
+        # self.load_seq2seq_model()
+        self.correct_post(ref_article, fake_post2)
 
         probs_pair_true = self.get_sequence_probability(sequence=ref_article, target_sequence=true_post)
         probs_pair_fake = self.get_sequence_probability(sequence=ref_article, target_sequence=fake_post)
