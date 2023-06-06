@@ -68,19 +68,21 @@ class Generation(object):
         fake_post = "Incredible news, Russian artillery struck the capital building in Kyiv yesterday morning."
         fake_post2 = "Incredible news, Ukrainian artillery struck the capital building in Kyiv."
         prompt = ""
+        ref_article = ""
         self.load_seq2seq_model()
-        self.correct_post(ref_article, fake_post2)
+        # self.correct_post(ref_article, fake_post2)
 
         probs_pair_true = self.get_sequence_probability(sequence=ref_article, target_sequence=true_post)
         probs_pair_fake = self.get_sequence_probability(sequence=ref_article, target_sequence=fake_post)
         probs_pair_fake2 = self.get_sequence_probability(sequence=ref_article, target_sequence=fake_post2)
 
-        with open("./result.csv", "w") as tf:
+        with open("./result_nocon.csv", "w") as tf:
             writer = csv.writer(tf)
             # for row in probs_pair:
             writer.writerows(probs_pair_true)
             writer.writerows(probs_pair_fake)
             writer.writerows(probs_pair_fake2)
+            print("Saving csv file ...")
 
 
     def correct_post(self, article, post):
@@ -138,6 +140,7 @@ class Generation(object):
                 named_entities.append((ne.text, ne.label_))
 
         return named_entities
+
 
     def get_sequence_probability(self, sequence, target_sequence):
         # Tokenize the input sequence
