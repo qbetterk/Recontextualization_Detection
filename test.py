@@ -52,7 +52,8 @@ class Generation(object):
         torch.cuda.empty_cache()
         self.model = self.model.to('cuda')
 
-    def gen_prob(self):
+
+    def create_example(self):
         ref_article = """
             Thursday, killing at least five people, hours ahead of the first face-to-face meeting since the start of the war between the Turkish and Ukrainian leaders. 
             Moscow meanwhile denied it had deployed any heavy weapons at the Russian-controlled Zaporizhzhia nuclear power plant in southern Ukraine where a recent escalation in fighting has increased fears of a nuclear disaster. 
@@ -69,19 +70,22 @@ class Generation(object):
         fake_post2 = "Incredible news, Ukrainian artillery struck the capital building in Kyiv."
         prompt = ""
         ref_article = ""
-        # self.load_seq2seq_model()
-        self.correct_post(ref_article, fake_post2)
+        return ref_article, true_post
 
-        probs_pair_true = self.get_sequence_probability(sequence=ref_article, target_sequence=true_post)
-        probs_pair_fake = self.get_sequence_probability(sequence=ref_article, target_sequence=fake_post)
-        probs_pair_fake2 = self.get_sequence_probability(sequence=ref_article, target_sequence=fake_post2)
+
+    def gen_prob(self):
+        ref_article, post = self.create_example()
+        # self.load_seq2seq_model()
+        self.correct_post(ref_article, post)
+
+        probs_pair_true = self.get_sequence_probability(sequence=ref_article, target_sequence=post)
+        probs_pair_fake = self.get_sequence_probability(sequence=ref_article, target_sequence=post)
 
         with open("./result_nocon.csv", "w") as tf:
             writer = csv.writer(tf)
             # for row in probs_pair:
             writer.writerows(probs_pair_true)
             writer.writerows(probs_pair_fake)
-            writer.writerows(probs_pair_fake2)
             print("Saving csv file ...")
 
 

@@ -99,8 +99,54 @@ class SimplifyData(object):
             print(f"Finish extracting and simplifying {mode} data, skip {miss_title}/{len(data)} articles without titles")
 
 
+class SimplifyData4(SimplifyData):
+    def __init__(self, arg=None):
+        super(SimplifyData, self).__init__()
+        self.data_dir = "./4.1.2"
+    
+    def simplify(self):
+        data_simp = []
+        for split in ["CallToAction", "Demoralize"]:
+            for article in os.listdir(os.path.join(self.data_dir, split)):
+                extract_dir = os.path.join(self.data_dir, split, article, "extract")
+                article_simp = self.init_simple_article()
+                article_simp["source"] = split
+                twitter_posts = []
+                for twitter in os.listdir(extract_dir):
+                    data = self._load_json(os.path.join(extract_dir, twitter, "aom.json"))
+                    # pdb.set_trace()
+                    if not len(data["content"]) > 2: # it is a twitter post
+                        twitter_posts.append(data["content"][1]["Content"][0]["Content"][0])
+                    else:
+                        # initilization for each article
+                        article_simp["title"] = data["title"]
+                        article_simp["uri"] = data["uri"]
+                        article_simp["tags"] = data["tags"]
+                        if not data["title"]:
+                            miss_title += 1
+                            continue
+                        
+                        # extract context
+                        for sent in data["content"]:
+                            if sent["Type"] == "Text":
+                                article_simp["content"].extend(sent["Content"])
+                            else:
+                                for component in sent["Content"]:
+                                    if component["Type"] == "Text":
+                                        article_simp["content"].extend(component["Content"])
+                        article_simp["content"] = [sent.strip() for sent in article_simp["content"]]
+                        article_simp["content"] = " ".join(article_simp["content"])
+                for twitter_post in twitter_posts:
+                    data_point = {"twitter_post": twitter_post}
+                    data_point.update(article_simp)
+                    data_simp.append(data_point)
+        self._save_json(data_simp, os.path.join(self.data_dir, "data_simplified.json"))
+
+
 def main():
-    simplifydata = SimplifyData()
+    # simplifydata = SimplifyData()
+    # simplifydata.simplify()
+    simplifydata = SimplifyData4()
     simplifydata.simplify()
 
 
