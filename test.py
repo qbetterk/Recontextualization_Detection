@@ -69,13 +69,13 @@ class Generation(object):
         fake_post = "Incredible news, Russian artillery struck the capital building in Kyiv yesterday morning."
         fake_post2 = "Incredible news, Ukrainian artillery struck the capital building in Kyiv."
         prompt = ""
-        ref_article = ""
+        # ref_article = ""
         return ref_article, true_post
 
 
     def gen_prob(self):
         ref_article, post = self.create_example()
-        # self.load_seq2seq_model()
+        self.load_seq2seq_model()
         self.correct_post(ref_article, post)
 
         probs_pair_true = self.get_sequence_probability(sequence=ref_article, target_sequence=post)
@@ -94,15 +94,18 @@ class Generation(object):
         probs_pair = sum(self.get_sequence_probability(sequence=article, target_sequence=post)[1])
         ner_news = self.NER(article)
         ner_news_dict = self.ner2dict(ner_news)
-        replace_pair = []
+
         for entity, type_ in ner_post:
             if type_ not in ner_news_dict: continue
             for entity_cand in ner_news_dict[type_]:
+                if entity_cand == entity: continue
                 post_cand = post.replace(entity, entity_cand)
                 porbs_pair_cand = sum(self.get_sequence_probability(sequence=article, target_sequence=post_cand)[1])
-                print(entity, entity_cand)
-                print(probs_pair, porbs_pair_cand)
-                pdb.set_trace()
+                if porbs_pair_cand > probs_pair: return 1
+        return 0
+                # print(entity, entity_cand)
+                # print(probs_pair, porbs_pair_cand)
+                # pdb.set_trace()
 
     
     def ner2dict(self, ner):
@@ -164,6 +167,7 @@ class Generation(object):
         sequence_probability, sequence_rank = [], []
         for idx, token_id in enumerate(target_token_ids):
             token_prob = probs[0, idx, token_id].item()
+            print(probs)
             token_rank = int(torch.where(torch.sort(probs[0, idx], descending=True)[0] == token_prob)[0].item())
             sequence_probability.append(token_prob)
             sequence_rank.append(token_rank)
@@ -216,10 +220,37 @@ class Generation(object):
             print(f"With threshold of {thres}, the acc is {acc}")
 
 
+    def compute_newsroom(self):
+        self.load_seq2seq_model()
+        test_data = self._load_json("data_my/newsroom_test.json")
+        acc = 0
+        for data in test_data:
+            article = data["title"] + " " + data["text"]
+            label = self.correct_post(article, data["summary"])
+            acc += label == data["label"]
+        acc /= len(test_data)
+        print(acc)
+        # for data
+
+
+    def compute_eval4(self):
+        self.load_seq2seq_model()
+        test_data = self._load_json("4.1.2/data_simplified.json")
+        acc = 0
+        for data in tqdm(test_data):
+            article = data["title"] + " " + data["content"]
+            label = self.correct_post(article, data["twitter_post"])
+            acc += label
+        acc /= len(test_data)
+        print(acc)
+
+
 def main():
     gen = Generation()
-    gen.gen_prob()
+    # gen.gen_prob()
     # gen.compute_acc()
+    gen.compute_newsroom()
+    gen.compute_eval4()
 
 
 if __name__ == "__main__":
