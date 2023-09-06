@@ -42,6 +42,11 @@ class Generation(object):
         return data
 
 
+    def _save_json(self, data, path):
+        with open(path, "w") as tf:
+            json.dump(data, tf, indent=4)
+
+
     def load_seq2seq_model(self):
         print(f"Loading model: {self.model_name} ......")
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
@@ -90,10 +95,13 @@ class Generation(object):
 
 
     def correct_post(self, article, post):
+        if post is None: pdb.set_trace()
         ner_post = self.NER(post)
         probs_pair = sum(self.get_sequence_probability(sequence=article, target_sequence=post)[1])
         ner_news = self.NER(article)
         ner_news_dict = self.ner2dict(ner_news)
+        # print(ner_post)
+        # pdb.set_trace()
 
         for entity, type_ in ner_post:
             if type_ not in ner_news_dict: continue
@@ -101,11 +109,8 @@ class Generation(object):
                 if entity_cand == entity: continue
                 post_cand = post.replace(entity, entity_cand)
                 porbs_pair_cand = sum(self.get_sequence_probability(sequence=article, target_sequence=post_cand)[1])
-                if porbs_pair_cand > probs_pair: return 1
-        return 0
-                # print(entity, entity_cand)
-                # print(probs_pair, porbs_pair_cand)
-                # pdb.set_trace()
+                if porbs_pair_cand > probs_pair: return 1, {"origin_entity": entity, "new_entity": entity_cand}
+        return 0, {}
 
     
     def ner2dict(self, ner):
@@ -167,10 +172,10 @@ class Generation(object):
         sequence_probability, sequence_rank = [], []
         for idx, token_id in enumerate(target_token_ids):
             token_prob = probs[0, idx, token_id].item()
-            print(probs)
-            token_rank = int(torch.where(torch.sort(probs[0, idx], descending=True)[0] == token_prob)[0].item())
+            # print(torch.where(torch.sort(probs[0, idx], descending=True)[0] == token_prob)[0].item())
+            # token_rank = int(torch.where(torch.sort(probs[0, idx], descending=True)[0] == token_prob)[0].item())
+            # sequence_rank.append(token_rank)
             sequence_probability.append(token_prob)
-            sequence_rank.append(token_rank)
         output_tokens = self.tokenizer.convert_ids_to_tokens(target_ids[0])
 
         return [output_tokens, sequence_probability, sequence_rank]
@@ -230,26 +235,36 @@ class Generation(object):
             acc += label == data["label"]
         acc /= len(test_data)
         print(acc)
-        # for data
 
 
     def compute_eval4(self):
         self.load_seq2seq_model()
         test_data = self._load_json("4.1.2/data_simplified.json")
         acc = 0
+        output = []
         for data in tqdm(test_data):
             article = data["title"] + " " + data["content"]
-            label = self.correct_post(article, data["twitter_post"])
+            print("*"*10, data["twitter_post"])
+            # if data["twitter_post"] is None: pdb.set_trace()
+            label, replacement = self.correct_post(article, data["twitter_post"])
             acc += label
+            if self.save_output:
+                replacement["inconsistency"] = bool(label)
+                replacement["article"] = article
+                replacement["twitter"] = data["twitter_post"]
+                output.append(replacement)
         acc /= len(test_data)
-        print(acc)
+        print(f"The acc is : {acc}")
+        if self.save_output:
+            self._save_json(output, "4.1.2/result.json")
 
 
 def main():
     gen = Generation()
     # gen.gen_prob()
     # gen.compute_acc()
-    gen.compute_newsroom()
+    # gen.compute_newsroom()
+    gen.save_output = True
     gen.compute_eval4()
 
 

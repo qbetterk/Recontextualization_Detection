@@ -4,7 +4,7 @@ set -xue
 
 if [ $HOSTNAME == "communication" ]; then
         # ****************************** script for communication ****************************** 
-        export CUDA_VISIBLE_DEVICES=2
+        export CUDA_VISIBLE_DEVICES=5
         export HF_DATASETS_CACHE=/local-storage/data/qkun/huggingface/datasets/
         export TRANSFORMERS_CACHE=/local-storage/data/qkun/huggingface/transformers/
         export HF_HOME=/local-storage/data/qkun/huggingface/
